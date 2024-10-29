@@ -1,8 +1,11 @@
 package com.example.examen_aplicacion2
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,6 +24,8 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
     var firebaseError by remember { mutableStateOf("") }
     var totalProductos by remember { mutableStateOf(0) }
     var totalPrecio by remember { mutableStateOf(0.0) }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedProducto by remember { mutableStateOf<Producto?>(null) }
 
     val productosRef = db.collection("productos")
 
@@ -28,7 +33,9 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
     LaunchedEffect(Unit) {
         productosRef.get()
             .addOnSuccessListener { result ->
-                val productosList = result.toObjects(Producto::class.java)
+                val productosList = result.map { document ->
+                    document.toObject(Producto::class.java).copy(id = document.id)
+                }
                 productos.clear()
                 productos.addAll(productosList)
                 totalProductos = productosList.size
@@ -45,7 +52,17 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
             Text(text = "Lista de la compra: $totalProductos productos, Total: $totalPrecio €")
             productos.forEach { producto ->
                 val totalProducto = producto.cantidad * producto.precio
-                Text(text = "${producto.nombre} - ${producto.cantidad} - ${producto.precio} = $totalProducto")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .clickable {
+                            selectedProducto = producto
+                            expanded = true
+                        }
+                ) {
+                    Text(text = "${producto.nombre} - ${producto.cantidad} - ${producto.precio} = $totalProducto")
+                }
             }
             if (errorMessage.isNotEmpty()) {
                 Text(text = errorMessage, color = androidx.compose.ui.graphics.Color.Red)
@@ -85,8 +102,10 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
                         )
                         productos.add(producto)
                         productosRef.add(producto)
-                            .addOnSuccessListener {
+                            .addOnSuccessListener { documentReference ->
                                 Log.d("Firestore", "Producto agregado exitosamente: $producto")
+                                // Update the product with the document ID
+                                productos[productos.indexOf(producto)] = producto.copy(id = documentReference.id)
                                 // Clear fields on success
                                 nombre = ""
                                 cantidad = ""
@@ -110,5 +129,32 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
                 Text(text = "Agregar Producto")
             }
         }
+    }
+
+    // Dropdown menu for deleting a product
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
+        DropdownMenuItem(
+            onClick = {
+                selectedProducto?.let { producto ->
+                    productos.remove(producto)
+                    productosRef.document(producto.id).delete()
+                        .addOnSuccessListener {
+                            Log.d("Firestore", "Producto eliminado exitosamente: $producto")
+                            // Update totals
+                            totalProductos -= 1
+                            totalPrecio -= producto.precio * producto.cantidad
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.e("Firestore", "Error al eliminar en Firestore: ${exception.message}")
+                            firebaseError = "Error deleting from Firestore: ${exception.message}"
+                        }
+                }
+                expanded = false
+            },
+            text = { Text("Eliminar") }
+        )
     }
 }
