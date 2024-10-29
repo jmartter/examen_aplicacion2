@@ -32,7 +32,7 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
                 productos.clear()
                 productos.addAll(productosList)
                 totalProductos = productosList.size
-                totalPrecio = productosList.sumOf { it.precio }
+                totalPrecio = productosList.sumOf { it.precio * it.cantidad }
             }
             .addOnFailureListener { exception ->
                 Log.e("Firestore", "Error al obtener productos: ${exception.message}")
@@ -44,7 +44,8 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
         Column(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)) {
             Text(text = "Lista de la compra: $totalProductos productos, Total: $totalPrecio €")
             productos.forEach { producto ->
-                Text(text = "${producto.nombre} - ${producto.cantidad} - ${producto.precio}")
+                val totalProducto = producto.cantidad * producto.precio
+                Text(text = "${producto.nombre} - ${producto.cantidad} - ${producto.precio} = $totalProducto")
             }
             if (errorMessage.isNotEmpty()) {
                 Text(text = errorMessage, color = androidx.compose.ui.graphics.Color.Red)
@@ -94,7 +95,7 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
                                 firebaseError = ""
                                 // Update totals
                                 totalProductos += 1
-                                totalPrecio += producto.precio
+                                totalPrecio += producto.precio * producto.cantidad
                             }
                             .addOnFailureListener { exception ->
                                 Log.e("Firestore", "Error al guardar en Firestore: ${exception.message}")
