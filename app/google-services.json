@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "578337247769",
+    "project_id": "examenaplicacion2",
+    "storage_bucket": "examenaplicacion2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:578337247769:android:a8d36c259972a446c19088",
+        "android_client_info": {
+          "package_name": "com.example.examen_aplicacion2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAY8kvP3oFqm7yS6Bo3yMe0VMHtHoEVPPc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
