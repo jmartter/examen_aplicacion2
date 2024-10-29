@@ -19,11 +19,30 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
     val productos = remember { mutableStateListOf<Producto>() }
     var errorMessage by remember { mutableStateOf("") }
     var firebaseError by remember { mutableStateOf("") }
+    var totalProductos by remember { mutableStateOf(0) }
+    var totalPrecio by remember { mutableStateOf(0.0) }
 
     val productosRef = db.collection("productos")
 
+    // Fetch products from Firebase
+    LaunchedEffect(Unit) {
+        productosRef.get()
+            .addOnSuccessListener { result ->
+                val productosList = result.toObjects(Producto::class.java)
+                productos.clear()
+                productos.addAll(productosList)
+                totalProductos = productosList.size
+                totalPrecio = productosList.sumOf { it.precio }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("Firestore", "Error al obtener productos: ${exception.message}")
+                firebaseError = "Error fetching products: ${exception.message}"
+            }
+    }
+
     Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Column(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)) {
+            Text(text = "Lista de la compra: $totalProductos productos, Total: $totalPrecio €")
             productos.forEach { producto ->
                 Text(text = "${producto.nombre} - ${producto.cantidad} - ${producto.precio}")
             }
@@ -39,7 +58,7 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it },
-                    label = { Text("Nombre del producto") },
+                    label = { Text("Producto") },
                     modifier = Modifier.weight(1f).padding(8.dp)
                 )
                 OutlinedTextField(
@@ -73,6 +92,9 @@ fun ShoppingListScreen(db: FirebaseFirestore) {
                                 precio = ""
                                 errorMessage = ""
                                 firebaseError = ""
+                                // Update totals
+                                totalProductos += 1
+                                totalPrecio += producto.precio
                             }
                             .addOnFailureListener { exception ->
                                 Log.e("Firestore", "Error al guardar en Firestore: ${exception.message}")
